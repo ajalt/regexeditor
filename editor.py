@@ -84,15 +84,25 @@ class MainWindow(QtGui.QMainWindow):
         # when it sets the document html
         self.highlight_enabled = False
         
+        # Save the cursor position, which will get reset after we change the html
+        cursor_position = self.search_text_edit.textCursor().position()
+        
         try:
             for match in re.finditer(pattern, text):
                 html += escape(text[index:match.start()])
-                html += '<span style="background-color:#62e55f;">' + text[match.start():match.end()] + '</span>'
+                html += '<span style="background-color:#ade7a5;">' + text[match.start():match.end()] + '</span>'
                 index = match.end()
                 if self.button_group.checkedButton() is self.match_button:
                     break
             html += escape(text[index:]) + '</html>'
+            
             self.set_document_html(html)
+            
+            
+            cursor = self.search_text_edit.textCursor()
+            cursor.setPosition(cursor_position)
+            self.search_text_edit.setTextCursor(cursor)
+            
         except sre_constants.error as err:
             print err
         finally:
