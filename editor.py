@@ -48,22 +48,29 @@ class MainWindow(QtGui.QMainWindow):
         self.addToolBar(self.toolbar)
         
         self.central_widget = QtGui.QSplitter(QtCore.Qt.Vertical)
-        self.expression_edit = QtGui.QTextEdit()
-        self.expression_edit.setAcceptRichText(False)
-        self.expression_edit.textChanged.connect(self.highlight)
-        self.expression_pane = WindowPane('Pattern', self.expression_edit)
-        self.search_text_edit = QtGui.QTextEdit()
-        self.search_text_edit.setAcceptRichText(False)
-        self.search_text_edit.textChanged.connect(self.highlight)
-        self.search_text_pane = WindowPane('Search Text', self.search_text_edit)
         
-        self.central_widget.addWidget(self.expression_pane)
-        self.central_widget.addWidget(self.search_text_pane)
+        def create_edit(title):
+            e = QtGui.QTextEdit()
+            e.setAcceptRichText(False)
+            e.textChanged.connect(self.highlight)
+            e.setLineWrapMode(QtGui.QTextEdit.NoWrap)
+            p = WindowPane(title, e)
+            self.central_widget.addWidget(p)
+            
+            return e, p
         
+        self.expression_edit, self.expression_pane = create_edit('Pattern')
+        self.expression_edit.setFontPointSize(11)
+        self.search_text_edit, self.search_text_pane = create_edit('Search Text')
+        
+        self.central_widget.setSizes([100, 400])
         
         self.setCentralWidget(self.central_widget)
         
         self.highlight_enabled = True
+        
+    def sizeHint(self):
+        return QtCore.QSize(550, 675)
         
     def set_document_html(self, html):
         self.expression_edit.textChanged.disconnect(self.highlight)
@@ -77,7 +84,7 @@ class MainWindow(QtGui.QMainWindow):
         if not pattern or not self.highlight_enabled:
             return
         
-        html = '<html>'
+        html = '<!DOCTYPE html><html><body><div style="font-size:11pt;">'
         index = 0
         
         # Disable highlighting so that this function isn't called recursively
@@ -94,8 +101,8 @@ class MainWindow(QtGui.QMainWindow):
                 index = match.end()
                 if self.button_group.checkedButton() is self.match_button:
                     break
-            html += escape(text[index:]) + '</html>'
-            
+                
+            html += escape(text[index:]) + '</div></body></html>'
             self.set_document_html(html)
             
             
