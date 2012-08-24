@@ -22,7 +22,7 @@ class WindowPane(QtGui.QFrame):
         
 
 class MainWindow(QtGui.QMainWindow):
-    HTML_OPEN = '<!DOCTYPE html><html><body><div style="font-size:11pt;">'
+    HTML_OPEN = '<!DOCTYPE html><html><body><div style="font-size:10pt;font-family:Courier, monospace">'
     HTML_CLOSE = '</div></body></html>'
     def __init__(self):
         super(MainWindow, self).__init__()
@@ -69,7 +69,7 @@ class MainWindow(QtGui.QMainWindow):
         
         self.setCentralWidget(self.central_widget)
         
-        self.highlight_enabled = True
+        self.setWindowTitle('Regex Editor')
         
     def sizeHint(self):
         return QtCore.QSize(550, 675)
@@ -78,15 +78,11 @@ class MainWindow(QtGui.QMainWindow):
         text = self.search_text_edit.document().toPlainText()
         pattern = self.expression_edit.document().toPlainText()
         
-        if not pattern or not self.highlight_enabled:
+        if not pattern:
             return
         
         html = self.HTML_OPEN
         index = 0
-        
-        # Disable highlighting so that this function isn't called recursively
-        # when it sets the document html
-        self.highlight_enabled = False
         
         # Save the cursor position, which will get reset after we change the html
         cursor_position = self.search_text_edit.textCursor().position()
@@ -101,6 +97,7 @@ class MainWindow(QtGui.QMainWindow):
                 
             html += escape(text[index:]) + self.HTML_CLOSE
             
+            # disconnect signals before we setHtml so that this function isn't called recursively
             self.search_text_edit.textChanged.disconnect(self.highlight_search_text)
             self.search_text_edit.document().setHtml(html)
             self.search_text_edit.textChanged.connect(self.highlight_search_text)
@@ -111,8 +108,6 @@ class MainWindow(QtGui.QMainWindow):
             
         except sre_constants.error as err:
             print err
-        finally:
-            self.highlight_enabled = True
             
     def highlight_expression(self):
         parens = '()'
@@ -127,7 +122,6 @@ class MainWindow(QtGui.QMainWindow):
             'brace':'color:#871f78;',
             'operator':'color:#0000ff;'
         }
-        
         
         # Save the cursor position, which will get reset after we change the html
         cursor_position = self.expression_edit.textCursor().position()
