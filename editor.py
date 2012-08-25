@@ -20,10 +20,42 @@ class WindowPane(QtGui.QFrame):
         self.layout.addWidget(self.widget)
         self.setLayout(self.layout)
         
+class MatchView(QtGui.QTreeView):
+    def __init__(self):
+        super(MatchView, self).__init__()
+        
+        #self.setUniformRowHeights(True)
+        
+        self.model = QtGui.QStandardItemModel()
+        self.setModel(self.model)
+        
+        # Call clear so the model initially has labels 
+        self.clear()
+        
+        self.row_count = 0
+        
+    def clear(self):
+        self.model.clear()
+        self.model.setHorizontalHeaderLabels(['Group', 'Span', 'Contents'])
+    
+    def add_match(self, match):
+        self.model.appendRow([QtGui.QStandardItem(text) for text in ('Match %i' % self.model.rowCount(), '%i-%i' % match.span(), match.group(0))])
+        
+        # There should be a better way to get the last row
+        row = self.model.invisibleRootItem().child(self.model.rowCount() - 1)
+            
+        if match.groups():
+            start = match.start()
+            for i, group in enumerate(match.groups()):
+                row.appendRow([QtGui.QStandardItem(text) for text in ('Group %i' % i, '%i-%i' % (start, start + len(group)), group)])
+                start += len(group)
+                
+        self.setExpanded(row.index(), True)
 
 class MainWindow(QtGui.QMainWindow):
     HTML_OPEN = '<!DOCTYPE html><html><body><div style="font-size:10pt;font-family:Courier, monospace">'
     HTML_CLOSE = '</div></body></html>'
+    
     def __init__(self):
         super(MainWindow, self).__init__()
         
@@ -65,8 +97,11 @@ class MainWindow(QtGui.QMainWindow):
         self.expression_edit.textChanged.connect(self.highlight_expression)
         self.search_text_edit, self.search_text_pane = create_edit('Search Text')
         
-        self.central_widget.setSizes([100, 400])
+        self.match_view = MatchView()
+        self.match_pane = WindowPane('Match results', self.match_view)
+        self.central_widget.addWidget(self.match_pane)
         
+        self.central_widget.setSizes([100, 400, 200])
         self.setCentralWidget(self.central_widget)
         
         self.setWindowTitle('Regex Editor')
@@ -75,6 +110,8 @@ class MainWindow(QtGui.QMainWindow):
         return QtCore.QSize(550, 675)
         
     def highlight_search_text(self):
+        self.match_view.clear()
+        
         text = self.search_text_edit.document().toPlainText()
         pattern = self.expression_edit.document().toPlainText()
         
@@ -89,6 +126,8 @@ class MainWindow(QtGui.QMainWindow):
         
         try:
             for match in re.finditer(pattern, text):
+                self.match_view.add_match(match)
+                
                 html += escape(text[index:match.start()])
                 html += '<span style="background-color:#ade7a5;">' + text[match.start():match.end()] + '</span>'
                 index = match.end()
@@ -167,8 +206,8 @@ class MainWindow(QtGui.QMainWindow):
         self.expression_edit.textChanged.disconnect(self.highlight_search_text)
         self.expression_edit.textChanged.disconnect(self.highlight_expression)
         self.expression_edit.document().setHtml(html)
-        self.expression_edit.textChanged.connect(self.highlight_expression)
         self.expression_edit.textChanged.connect(self.highlight_search_text)
+        self.expression_edit.textChanged.connect(self.highlight_expression)
             
         cursor = self.expression_edit.textCursor()
         cursor.setPosition(cursor_position)
